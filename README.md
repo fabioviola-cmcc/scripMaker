@@ -10,6 +10,17 @@ $ python scripMaker.py --grid=grid.nc --mask=mask.nc --output=out.nc
 
 ## Requirements
 
+scripMaker.py can be run in an environment configured like this:
+
+```
+$ conda create -n scrip
+$ conda activate scrip
+$ conda install "python<=3.9.0a0"
+$ conda install netCDF4
+```
+
+The full list of packages at the end of the installl process should be like:
+
 ```
 $ conda list
 # packages in environment at /users_home/opa/resm-dev/.conda/envs/scrip:
@@ -56,3 +67,14 @@ wheel                     0.36.2             pyhd3eb1b0_0
 xz                        5.2.5                h7b6447c_0  
 zlib                      1.2.11               h7b6447c_3  
 ```
+
+## Error codes
+
+The following error codes are raised in case of exceptions:
+
+1. One or more input parameters are missing
+2. Grid file not found
+3. Mask file not found
+4. Opening of the output file failed
+
+More will be added soon.

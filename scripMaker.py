@@ -1,4 +1,19 @@
 #!/usr/bin/python3
+#
+# scripMaker.py v0.1
+#
+# This script takes as input a netCDF4 grid and a netCDF4 mask
+# to produce an output netCDF4 file with the grid converted to
+# the SCRIP format.
+#
+# Developed by Fabio Viola adapting Pier Giuseppe Fogli's Matlab
+# code to our specific use case. For debug purposes, note that
+# at the end of many lines is reported the line number of the
+# original Matlab equivalent instruction(s).
+#
+# Released under GPL v3.0 license
+# Contact info: Fabio Viola <fabio.viola@cmcc.it>
+
 
 # global reqs
 import pdb
@@ -7,6 +22,7 @@ import numpy
 import getopt
 import logging
 import datetime
+import traceback
 from netCDF4 import Dataset
 
 
@@ -31,23 +47,26 @@ if __name__ == "__main__":
     ########################################################
 
     logger.debug("Reading input params...")
-    inputFile1 = None
-    inputFile2 = None
+    gridFile = None
+    maskFile = None
     outputFile = None
     options, remainder = getopt.getopt(sys.argv[1:], 'o:g:m:', ['output=', 'grid=', 'mask='])
     for opt, arg in options:
         if opt in ('-o', '--output'):
             outputFile = arg
+            logger.debug("Output file set to: %s" % arg)
         elif opt in ('-g', '--grid'):
-            inputFile1 = arg
+            gridFile = arg
+            logger.debug("Grid file set to: %s" % arg)
         elif opt in ('-m', '--mask'):
-            inputFile2 = arg
+            maskFile = arg
+            logger.debug("Mask file set to: %s" % arg)
         else:
-            sys.warning("Option %s not recognised" % opt)
+            logger.warning("Option %s not recognised" % opt)
 
-    if not(inputFile1) or not(inputFile2) or not(outputFile):
+    if not(gridFile) or not(maskFile) or not(outputFile):
         logger.error("You must pass the two input files and an output file name")
-        sys.exit(255)
+        sys.exit(1)
 
         
     ########################################################
@@ -56,19 +75,19 @@ if __name__ == "__main__":
     #
     ########################################################
     
-    logger.debug("Opening input file %s" % inputFile1)
+    logger.debug("Opening input file %s" % gridFile)
     try:
-        iFile1 = Dataset(inputFile1)
+        iFile1 = Dataset(gridFile)
     except FileNotFoundError:
-        logger.error("File not found %s" % inputFile1)
-        sys.exit(254)
+        logger.error("File not found %s" % gridFile)
+        sys.exit(2)
 
-    logger.debug("Opening input file %s" % inputFile2)
+    logger.debug("Opening input file %s" % maskFile)
     try:
-        iFile2 = Dataset(inputFile2)
+        iFile2 = Dataset(maskFile)
     except FileNotFoundError:
-        logger.error("File not found %s" % inputFile2)
-        sys.exit(254)
+        logger.error("File not found %s" % maskFile)
+        sys.exit(3)
 
         
     ########################################################
@@ -127,7 +146,7 @@ if __name__ == "__main__":
     # determine fxt
     fxt = numpy.radians(numpy.floor(numpy.min(lat[0,:])))
 
-    # initislidr nemo_clo and nemo_cla
+    # initialise nemo_clo and nemo_cla
     nemo_clo = numpy.zeros((nlon, nlat, grid_corners)) ### 496
     nemo_cla = numpy.zeros((nlon, nlat, grid_corners)) ### 497
 
@@ -150,7 +169,7 @@ if __name__ == "__main__":
     nemo_clo[0,0,2] = rclon[-1,0]         ### 508
     nemo_cla[1:,1:,2] = rclat[0:-1,0:-1]  ### 518
     nemo_cla[0,1:,2] = rclat[-3,0:-1]     ### 519
-    nemo_cla[:,0,2] = fxt;                ### 520
+    nemo_cla[:,0,2] = fxt                 ### 520
 
     # Corner 4 lon and lat
     nemo_clo[:,1:,3] = rclon[:,0:-1]    ### 510
@@ -164,8 +183,34 @@ if __name__ == "__main__":
     mask = numpy.matrix.flatten(mask)   ### 695
     tarea = numpy.matrix.flatten(tarea) ### 696
 
-    # TODO -- nemo_clo=reshape(nemo_clo,grid_size,grid_corners);
-    # TODO -- nemo_cla=reshape(nemo_cla,grid_size,grid_corners);
+    # reshape nemo_clo
+    nemo_clo1 = numpy.matrix.flatten(nemo_clo[:,:,0])
+    nemo_clo2 = numpy.matrix.flatten(nemo_clo[:,:,1])
+    nemo_clo3 = numpy.matrix.flatten(nemo_clo[:,:,2])
+    nemo_clo4 = numpy.matrix.flatten(nemo_clo[:,:,3])
+    nemo_clo_final = numpy.zeros((nlon*nlat, grid_corners))
+    nemo_clo_final[:,0] = nemo_clo1
+    nemo_clo_final[:,1] = nemo_clo2
+    nemo_clo_final[:,2] = nemo_clo3
+    nemo_clo_final[:,3] = nemo_clo4
+
+    # reshape nemo_cla
+    nemo_cla1 = numpy.matrix.flatten(nemo_cla[:,:,0])
+    nemo_cla2 = numpy.matrix.flatten(nemo_cla[:,:,1])
+    nemo_cla3 = numpy.matrix.flatten(nemo_cla[:,:,2])
+    nemo_cla4 = numpy.matrix.flatten(nemo_cla[:,:,3])
+    nemo_cla_final = numpy.zeros((nlon*nlat, grid_corners))
+    nemo_cla_final[:,0] = nemo_cla1
+    nemo_cla_final[:,1] = nemo_cla2
+    nemo_cla_final[:,2] = nemo_cla3
+    nemo_cla_final[:,3] = nemo_cla4
+    
+    # try:
+    #     nemo_clo = numpy.reshape(nemo_clo, grid_size, grid_corners);
+    # except:
+    #     print(traceback.print_exc())
+    #     pdb.set_trace()
+    # # TODO -- nemo_cla=reshape(nemo_cla,grid_size,grid_corners);
     
     ### Processing ends at line 698
     ### After that, it's just production of the output NetCDF files
@@ -182,13 +227,13 @@ if __name__ == "__main__":
         oFile = Dataset(outputFile, "w")
     except FileNotFoundError:
         logger.error("Impossible to create file %s" % outputFile)
-        sys.exit(253)
+        sys.exit(4)
 
     # write attributes
     oFile.title = "SCRIP grid created with scripMaker.py" ### 727
     oFile.Conventions = "CF-1.0" ### 726
     oFile.institution = "Euro-Mediterranean Centre for Climate Change - CMCC" ### 728
-    oFile.source = "%s %s" % (inputFile1, inputFile2)  
+    oFile.source = "%s %s" % (gridFile, maskFile)  
     oFile.contact = "Fabio Viola <fabio.viola@cmcc.it>" ### 736
     oFile.creation_date = datetime.datetime.today().strftime("%Y/%m/%d %H:%M") ### 737
 
@@ -241,13 +286,13 @@ if __name__ == "__main__":
     logger.debug("Creating variable grid_corner_lat")
     gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 801, 802, 803, 806
     gridCornerLatVar.setncattr("units", "rad") ### 804, 805
-#    gridCornerLatVar[:] = nemo_cla ### 823
+    gridCornerLatVar[:] = nemo_cla_final ### 823
 
     # create variable grid_corner_lon
     logger.debug("Creating variable grid_corner_lon")
     gridCornerLonVar = oFile.createVariable("grid_corner_lon", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 809, 810, 811, 814
     gridCornerLonVar.setncattr("units", "rad") ### 812, 813
-#    gridCornerLonVar[:] = nemo_clo ### 824
- 
+    gridCornerLonVar[:] = nemo_clo_final ### 824
+    
     # close output file
     oFile.close()
