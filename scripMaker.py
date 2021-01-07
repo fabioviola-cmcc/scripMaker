@@ -103,10 +103,10 @@ if __name__ == "__main__":
     lat = numpy.squeeze(iFile1.variables["gphit"]).transpose() ### 306, 320
     nlon = lon.shape[0] ### 327
     nlat = lat.shape[1] ### 328
-    grid_size = nlat * nlon
-    grid_dims = [nlat, nlon]
-    grid_corners = 4
-    grid_rank = 2
+    grid_size = nlat * nlon ### 456
+    grid_dims = [nlat, nlon] ### 457
+    grid_corners = 4 ### 458
+    grid_rank = 2 ### 459
 
     # read F coordinates    
     clon = numpy.squeeze(iFile1.variables["glamf"]).transpose() ### 310, 321
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # compute T grid corners coordinates (F points)
     tarea = e1t * e2t  ### 468
     erad = 6371229; # NEMO Earth radius (m) ### 479
-    tarea = tarea/(erad^2) # Noralise (probably useless) ### 487    
+    tarea = tarea/(erad^2) # Normalise (probably useless) ### 487    
     
     # Translate longitude from range [-180:180] to [0:360]
     # NOTE: this is probably useless for our use case. Keep for future?
@@ -184,33 +184,28 @@ if __name__ == "__main__":
     tarea = numpy.matrix.flatten(tarea) ### 696
 
     # reshape nemo_clo
-    nemo_clo1 = numpy.matrix.flatten(nemo_clo[:,:,0])
-    nemo_clo2 = numpy.matrix.flatten(nemo_clo[:,:,1])
-    nemo_clo3 = numpy.matrix.flatten(nemo_clo[:,:,2])
-    nemo_clo4 = numpy.matrix.flatten(nemo_clo[:,:,3])
-    nemo_clo_final = numpy.zeros((nlon*nlat, grid_corners))
-    nemo_clo_final[:,0] = nemo_clo1
-    nemo_clo_final[:,1] = nemo_clo2
-    nemo_clo_final[:,2] = nemo_clo3
-    nemo_clo_final[:,3] = nemo_clo4
+    # TODO - Refactor this code
+    nemo_clo1 = numpy.matrix.flatten(nemo_clo[:,:,0])       ### 697
+    nemo_clo2 = numpy.matrix.flatten(nemo_clo[:,:,1])       ### 697
+    nemo_clo3 = numpy.matrix.flatten(nemo_clo[:,:,2])       ### 697
+    nemo_clo4 = numpy.matrix.flatten(nemo_clo[:,:,3])       ### 697
+    nemo_clo_final = numpy.zeros((nlon*nlat, grid_corners)) ### 697
+    nemo_clo_final[:,0] = nemo_clo1       ### 697
+    nemo_clo_final[:,1] = nemo_clo2       ### 697
+    nemo_clo_final[:,2] = nemo_clo3       ### 697
+    nemo_clo_final[:,3] = nemo_clo4       ### 697
 
     # reshape nemo_cla
-    nemo_cla1 = numpy.matrix.flatten(nemo_cla[:,:,0])
-    nemo_cla2 = numpy.matrix.flatten(nemo_cla[:,:,1])
-    nemo_cla3 = numpy.matrix.flatten(nemo_cla[:,:,2])
-    nemo_cla4 = numpy.matrix.flatten(nemo_cla[:,:,3])
-    nemo_cla_final = numpy.zeros((nlon*nlat, grid_corners))
-    nemo_cla_final[:,0] = nemo_cla1
-    nemo_cla_final[:,1] = nemo_cla2
-    nemo_cla_final[:,2] = nemo_cla3
-    nemo_cla_final[:,3] = nemo_cla4
-    
-    # try:
-    #     nemo_clo = numpy.reshape(nemo_clo, grid_size, grid_corners);
-    # except:
-    #     print(traceback.print_exc())
-    #     pdb.set_trace()
-    # # TODO -- nemo_cla=reshape(nemo_cla,grid_size,grid_corners);
+    # TODO - Refactor this code
+    nemo_cla1 = numpy.matrix.flatten(nemo_cla[:,:,0])       ### 698
+    nemo_cla2 = numpy.matrix.flatten(nemo_cla[:,:,1])       ### 698
+    nemo_cla3 = numpy.matrix.flatten(nemo_cla[:,:,2])       ### 698
+    nemo_cla4 = numpy.matrix.flatten(nemo_cla[:,:,3])       ### 698
+    nemo_cla_final = numpy.zeros((nlon*nlat, grid_corners)) ### 698
+    nemo_cla_final[:,0] = nemo_cla1       ### 698
+    nemo_cla_final[:,1] = nemo_cla2       ### 698
+    nemo_cla_final[:,2] = nemo_cla3       ### 698
+    nemo_cla_final[:,3] = nemo_cla4       ### 698
     
     ### Processing ends at line 698
     ### After that, it's just production of the output NetCDF files
@@ -224,7 +219,7 @@ if __name__ == "__main__":
         
     logger.debug("Opening output file...")
     try:
-        oFile = Dataset(outputFile, "w")
+        oFile = Dataset(outputFile, "w") ### 717
     except FileNotFoundError:
         logger.error("Impossible to create file %s" % outputFile)
         sys.exit(4)
