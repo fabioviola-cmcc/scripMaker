@@ -184,28 +184,10 @@ if __name__ == "__main__":
     tarea = numpy.matrix.flatten(tarea) ### 696
 
     # reshape nemo_clo
-    # TODO - Refactor this code
-    nemo_clo1 = numpy.matrix.flatten(nemo_clo[:,:,0])       ### 697
-    nemo_clo2 = numpy.matrix.flatten(nemo_clo[:,:,1])       ### 697
-    nemo_clo3 = numpy.matrix.flatten(nemo_clo[:,:,2])       ### 697
-    nemo_clo4 = numpy.matrix.flatten(nemo_clo[:,:,3])       ### 697
-    nemo_clo_final = numpy.zeros((nlon*nlat, grid_corners)) ### 697
-    nemo_clo_final[:,0] = nemo_clo1       ### 697
-    nemo_clo_final[:,1] = nemo_clo2       ### 697
-    nemo_clo_final[:,2] = nemo_clo3       ### 697
-    nemo_clo_final[:,3] = nemo_clo4       ### 697
-
+    nemo_clo_final = nemo_clo.reshape((grid_size, grid_corners))
+    
     # reshape nemo_cla
-    # TODO - Refactor this code
-    nemo_cla1 = numpy.matrix.flatten(nemo_cla[:,:,0])       ### 698
-    nemo_cla2 = numpy.matrix.flatten(nemo_cla[:,:,1])       ### 698
-    nemo_cla3 = numpy.matrix.flatten(nemo_cla[:,:,2])       ### 698
-    nemo_cla4 = numpy.matrix.flatten(nemo_cla[:,:,3])       ### 698
-    nemo_cla_final = numpy.zeros((nlon*nlat, grid_corners)) ### 698
-    nemo_cla_final[:,0] = nemo_cla1       ### 698
-    nemo_cla_final[:,1] = nemo_cla2       ### 698
-    nemo_cla_final[:,2] = nemo_cla3       ### 698
-    nemo_cla_final[:,3] = nemo_cla4       ### 698
+    nemo_cla_final = nemo_cla.reshape((grid_size, grid_corners))
     
     ### Processing ends at line 698
     ### After that, it's just production of the output NetCDF files
