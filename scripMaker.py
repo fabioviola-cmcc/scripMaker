@@ -64,7 +64,7 @@ if __name__ == "__main__":
         else:
             logger.warning("Option %s not recognised" % opt)
 
-    if not(gridFile) or not(maskFile) or not(outputFile):
+    if not(gridFile) or not(outputFile):
         logger.error("You must pass the two input files and an output file name")
         sys.exit(1)
 
@@ -83,11 +83,12 @@ if __name__ == "__main__":
         sys.exit(2)
 
     logger.debug("Opening input file %s" % maskFile)
-    try:
-        iFile2 = Dataset(maskFile)
-    except FileNotFoundError:
-        logger.error("File not found %s" % maskFile)
-        sys.exit(3)
+    if maskFile:
+        try:
+            iFile2 = Dataset(maskFile)
+        except FileNotFoundError:
+            logger.error("File not found %s" % maskFile)
+            sys.exit(3)
 
         
     ########################################################
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     grid_corners = 4 ### 458
     grid_rank = 2 ### 459
 
-    # read F coordinates    
+    # read F coordinates
     clon = numpy.squeeze(iFile1.variables["glamf"]).transpose() ### 310, 321
     clat = numpy.squeeze(iFile1.variables["gphif"]).transpose() ### 311, 322
 
@@ -117,11 +118,14 @@ if __name__ == "__main__":
     e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose() ### 316, 324
 
     # load the land-sea mask (0=land, 1=sea)
-    tmask = numpy.squeeze(iFile2.variables["tmask"]) ### 334
-    if len(tmask.shape) == 3: ### 335
-        tmask = numpy.squeeze(tmask[0,:,:]) ### 336
-    mask = numpy.zeros(lon.shape) ### 339
-    mask = numpy.where(tmask>0.0, 1.0, 0.0) ### 340
+    if maskFile:
+        tmask = numpy.squeeze(iFile2.variables["tmask"]) ### 334
+        if len(tmask.shape) == 3: ### 335
+            tmask = numpy.squeeze(tmask[0,:,:]) ### 336
+            
+    mask = numpy.unos(lon.shape) ### 339
+    if maskFile:
+        mask = numpy.where(tmask>0.0, 1.0, 0.0) ### 340
     mask = mask.transpose() ### 446
     
     # compute T grid corners coordinates (F points)
