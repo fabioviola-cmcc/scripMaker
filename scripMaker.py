@@ -104,7 +104,7 @@ if __name__ == "__main__":
     nlon = lon.shape[0] ### 327
     nlat = lat.shape[1] ### 328
     grid_size = nlat * nlon ### 456
-    grid_dims = [nlat, nlon] ### 457
+    grid_dims = [nlon, nlat] ### 457
     grid_corners = 4 ### 458
     grid_rank = 2 ### 459
 
@@ -120,13 +120,10 @@ if __name__ == "__main__":
     tmask = numpy.squeeze(iFile2.variables["tmask"]) ### 334
     if len(tmask.shape) == 3: ### 335
         tmask = numpy.squeeze(tmask[0,:,:]) ### 336
-    hmin = 0.0 ### 57, 62, 66, 71
     mask = numpy.zeros(lon.shape) ### 339
-    mask = numpy.where(tmask>hmin, hmin, 0.0) ### 340
+    mask = numpy.where(tmask>0.0, 1.0, 0.0) ### 340
     mask = mask.transpose() ### 446
     
-    # NOTE: here we miss the part from comment "Compute land sea mask" until line 458
-
     # compute T grid corners coordinates (F points)
     tarea = e1t * e2t  ### 468
     erad = 6371229; # NEMO Earth radius (m) ### 479
@@ -249,7 +246,10 @@ if __name__ == "__main__":
     imaskVar.setncattr("units", "1") ### 779, 780
     imaskVar.setncattr("standard_name", "sea_binary_imask") ### 781, 782
     imaskVar.setncattr("long_name", "land-sea imask (1=sea, 0=land)") ### 783, 784
-    imaskVar[:] = mask ### 821
+    try:
+        imaskVar[:] = mask ### 821
+    except:
+        pdb.set_trace()
 
     # create variable grid_area
     logger.debug("Creating variable grid_area")
