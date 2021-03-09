@@ -231,7 +231,7 @@ if __name__ == "__main__":
     # create variable grid_center_lat
     logger.debug("Creating variable grid_center_lat")
     gridCenterLatVar = oFile.createVariable("grid_center_lat", numpy.dtype('double').char, ("grid_size")) ### 752, 753, 754, 761
-    gridCenterLatVar.setncattr("units", "rad") ### 755, 756
+    gridCenterLatVar.setncattr("units", "radians") ### 755, 756
     gridCenterLatVar.setncattr("long_name", "latitude") ### 757, 758
     gridCenterLatVar.setncattr("bounds", "grid_corner_lat") ### 759, 760
     gridCenterLatVar[:] = rlat ### 819
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     # create variable grid_center_lon
     logger.debug("Creating variable grid_center_lon")
     gridCenterLonVar = oFile.createVariable("grid_center_lon", numpy.dtype('double').char, ("grid_size")) ### 764, 765, 767, 773
-    gridCenterLonVar.setncattr("units", "rad") ### 767, 768
+    gridCenterLonVar.setncattr("units", "radians") ### 767, 768
     gridCenterLonVar.setncattr("long_name", "lonitude") ### 769, 770
     gridCenterLonVar.setncattr("bounds", "grid_corner_lon") ### 771, 772
     gridCenterLonVar[:] = rlon ### 820
@@ -266,13 +266,13 @@ if __name__ == "__main__":
     # create variable grid_corner_lat
     logger.debug("Creating variable grid_corner_lat")
     gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 801, 802, 803, 806
-    gridCornerLatVar.setncattr("units", "rad") ### 804, 805
+    gridCornerLatVar.setncattr("units", "radians") ### 804, 805
     gridCornerLatVar[:] = nemo_cla_final ### 823
 
     # create variable grid_corner_lon
     logger.debug("Creating variable grid_corner_lon")
     gridCornerLonVar = oFile.createVariable("grid_corner_lon", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 809, 810, 811, 814
-    gridCornerLonVar.setncattr("units", "rad") ### 812, 813
+    gridCornerLonVar.setncattr("units", "radians") ### 812, 813
     gridCornerLonVar[:] = nemo_clo_final ### 824
     
     # close output file
