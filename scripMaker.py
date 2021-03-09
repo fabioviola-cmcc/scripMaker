@@ -123,7 +123,7 @@ if __name__ == "__main__":
         if len(tmask.shape) == 3: ### 335
             tmask = numpy.squeeze(tmask[0,:,:]) ### 336
             
-    mask = numpy.unos(lon.shape) ### 339
+    mask = numpy.ones(lon.shape) ### 339
     if maskFile:
         mask = numpy.where(tmask>0.0, 1.0, 0.0) ### 340
     mask = mask.transpose() ### 446
