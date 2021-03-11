@@ -47,10 +47,11 @@ if __name__ == "__main__":
     ########################################################
 
     logger.debug("Reading input params...")
+    model = None
     gridFile = None
     maskFile = None
     outputFile = None
-    options, remainder = getopt.getopt(sys.argv[1:], 'o:g:m:', ['output=', 'grid=', 'mask='])
+    options, remainder = getopt.getopt(sys.argv[1:], 'o:g:m:', ['output=', 'grid=', 'mask=', 'model='])
     for opt, arg in options:
         if opt in ('-o', '--output'):
             outputFile = arg
@@ -61,12 +62,23 @@ if __name__ == "__main__":
         elif opt in ('-m', '--mask'):
             maskFile = arg
             logger.debug("Mask file set to: %s" % arg)
+        elif opt == '--model':
+            model = arg
+            if model in ["atm", "ocn"]:
+                logger.debug("Model set to: %s" % arg)
+            else:
+                logger.error("Model not supported! Use 'atm' or 'ocn'")
+                sys.exit(5)
         else:
             logger.warning("Option %s not recognised" % opt)
 
     if not(gridFile) or not(outputFile):
         logger.error("You must pass the two input files and an output file name")
         sys.exit(1)
+
+    if not(model):
+        logger.error("Model must be specified with --model=ocn|atm")
+        sys.exit(6)
 
         
     ########################################################
@@ -90,7 +102,26 @@ if __name__ == "__main__":
             logger.error("File not found %s" % maskFile)
             sys.exit(3)
 
-        
+
+
+    ########################################################
+    #
+    # set variable names depending on the model
+    #    
+    ########################################################
+
+    if model == "atm":
+        t_lon_var = 'XLONG_M'
+        t_lat_var = 'XLAT_M'
+        f_lon_var = 'XLONG_U'
+        f_lat_var = 'XLAT_V'
+    else:
+        t_lon_var = 'glamt'
+        t_lat_var = 'gphit'
+        f_lon_var = 'glamf'
+        f_lat_var = 'gphif'        
+    
+            
     ########################################################
     #
     # read data from the grids and mask (if any)
@@ -98,23 +129,28 @@ if __name__ == "__main__":
     ########################################################
     
     # read coordinates on T grid
-    t_lon = numpy.squeeze(iFile1.variables["glamt"]).transpose()
-    t_lat = numpy.squeeze(iFile1.variables["gphit"]).transpose()
+    t_lon = numpy.squeeze(iFile1.variables[t_lon_var]).transpose()
+    t_lat = numpy.squeeze(iFile1.variables[t_lat_var]).transpose()
 
     # read coordinates on F grid
-    f_lon = numpy.squeeze(iFile1.variables["glamf"]).transpose()
-    f_lat = numpy.squeeze(iFile1.variables["gphif"]).transpose()
-
+    if model == "ocn":
+        f_lon = numpy.squeeze(iFile1.variables[f_lon_var]).transpose()
+        f_lat = numpy.squeeze(iFile1.variables[f_lat_var]).transpose()
+    else:        
+        f_lon = numpy.squeeze(iFile1.variables[f_lon_var]).transpose()[1:,:]
+        f_lat = numpy.squeeze(iFile1.variables[f_lat_var]).transpose()[:,1:]
+        
     # read metrics fro T grid
-    e1t = numpy.squeeze(iFile1.variables["e1t"]).transpose()
-    e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose()
+    if model == "ocn":
+        e1t = numpy.squeeze(iFile1.variables["e1t"]).transpose()
+        e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose()
+        tarea = numpy.matrix.flatten(e1t * e2t)
     
     # determine other metrics for T grid
     t_lon_size = t_lon.shape[0]
     t_lat_size = t_lat.shape[1]
     t_grid_size = t_lat_size * t_lon_size
     t_grid_dims = [t_lon_size, t_lat_size]
-    tarea = numpy.matrix.flatten(e1t * e2t)
 
     # determine general metrics
     grid_corners = 4
@@ -274,12 +310,13 @@ if __name__ == "__main__":
     imaskVar[:] = mask
 
     # create variable grid_area
-    logger.debug("Creating variable grid_area")
-    areaVar = oFile.createVariable("grid_area", numpy.dtype('double').char, ("grid_size"))
-    areaVar.setncattr("units", "sr")
-    areaVar.setncattr("standard_name", "cell_area")
-    areaVar.setncattr("long_name", "area of grid cells (in steradians)")
-    areaVar[:] = tarea
+    if model == "ocn":
+        logger.debug("Creating variable grid_area")
+        areaVar = oFile.createVariable("grid_area", numpy.dtype('double').char, ("grid_size"))
+        areaVar.setncattr("units", "sr")
+        areaVar.setncattr("standard_name", "cell_area")
+        areaVar.setncattr("long_name", "area of grid cells (in steradians)")
+        areaVar[:] = tarea
 
     # create variable grid_corner_lat
     logger.debug("Creating variable grid_corner_lat")

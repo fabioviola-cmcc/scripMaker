@@ -5,8 +5,10 @@
 Invoke the script with:
 
 ```
-$ python scripMaker.py --grid=grid.nc --mask=mask.nc --output=out.nc
+$ python scripMaker.py --grid=grid.nc --mask=mask.nc --output=out.nc --model=ocn|atm
 ```
+
+Note: mask is not mandatory.
 
 ## Requirements
 
@@ -76,5 +78,7 @@ The following error codes are raised in case of exceptions:
 2. Grid file not found
 3. Mask file not found
 4. Opening of the output file failed
+5. Wrong model specified (only 'atm' and 'ocn' allowed)
+6. Model name not provided
 
 More will be added soon.
