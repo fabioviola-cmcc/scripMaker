@@ -6,10 +6,8 @@
 # to produce an output netCDF4 file with the grid converted to
 # the SCRIP format.
 #
-# Developed by Fabio Viola adapting Pier Giuseppe Fogli's Matlab
-# code to our specific use case. For debug purposes, note that
-# at the end of many lines is reported the line number of the
-# original Matlab equivalent instruction(s).
+# Developed by Fabio Viola and Giorgia Verri adapting P.G. Fogli's
+# Matlab code to our specific use case.
 #
 # Released under GPL v3.0 license
 # Contact info: Fabio Viola <fabio.viola@cmcc.it>
@@ -316,7 +314,7 @@ if __name__ == "__main__":
     logger.debug("Creating variable grid_center_lon")
     gridCenterLonVar = oFile.createVariable("grid_center_lon", numpy.dtype('double').char, ("grid_size"))
     gridCenterLonVar.setncattr("units", units)
-    gridCenterLonVar.setncattr("long_name", "lonitude")
+    gridCenterLonVar.setncattr("long_name", "longitude")
     gridCenterLonVar.setncattr("bounds", "grid_corner_lon")
     gridCenterLonVar[:] = final_center_lon
 
