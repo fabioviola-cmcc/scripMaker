@@ -115,12 +115,14 @@ if __name__ == "__main__":
         t_lat_var = 'XLAT_M'
         f_lon_var = 'XLONG_U'
         f_lat_var = 'XLAT_V'
+        units = "degrees"
     else:
         t_lon_var = 'glamt'
         t_lat_var = 'gphit'
         f_lon_var = 'glamf'
         f_lat_var = 'gphif'        
-    
+        units = "radians"
+        
             
     ########################################################
     #
@@ -169,15 +171,23 @@ if __name__ == "__main__":
     #
     ########################################################
 
-    # convert to radians
-    rad_center_lon = numpy.radians(t_lon)
-    rad_center_lat = numpy.radians(t_lat)
+    if model == "ocn":
 
-    # flatten
-    rad_center_lon = numpy.matrix.flatten(rad_center_lon)
-    rad_center_lat = numpy.matrix.flatten(rad_center_lat)
+        # convert to radians
+        rad_center_lon = numpy.radians(t_lon)
+        rad_center_lat = numpy.radians(t_lat)
 
-    
+        # flatten
+        final_center_lon = numpy.matrix.flatten(rad_center_lon) 
+        final_center_lat = numpy.matrix.flatten(rad_center_lat)
+
+    else:
+        
+        # flatten
+        final_center_lon = numpy.matrix.flatten(t_lon) 
+        final_center_lat = numpy.matrix.flatten(t_lat)
+
+        
     ########################################################
     #
     # processing CORNER Lon and Lat
@@ -223,16 +233,25 @@ if __name__ == "__main__":
     corner_lat[:,1:,3] = f_lat[:,0:-1]
     
     # convert to radiants
-    rad_corner_lat = numpy.radians(corner_lat)
-    rad_corner_lon = numpy.radians(corner_lon)
+    if model == "ocn":
+        rad_corner_lat = numpy.radians(corner_lat)
+        rad_corner_lon = numpy.radians(corner_lon)
 
-    # reshape nemo_clo
-    rad_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
-    
-    # reshape nemo_cla
-    rad_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
+        # reshape nemo_clo
+        final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
+        
+        # reshape nemo_cla
+        final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
 
+    else:
 
+        # reshape nemo_clo
+        final_corner_lon = corner_lon.reshape((t_grid_size, grid_corners))
+        
+        # reshape nemo_cla
+        final_corner_lat = corner_lat.reshape((t_grid_size, grid_corners))
+
+        
     ########################################################
     #
     # processing the mask
@@ -288,18 +307,18 @@ if __name__ == "__main__":
     # create variable grid_center_lat
     logger.debug("Creating variable grid_center_lat")
     gridCenterLatVar = oFile.createVariable("grid_center_lat", numpy.dtype('double').char, ("grid_size"))
-    gridCenterLatVar.setncattr("units", "rad")
+    gridCenterLatVar.setncattr("units", units)
     gridCenterLatVar.setncattr("long_name", "latitude")
     gridCenterLatVar.setncattr("bounds", "grid_corner_lat")
-    gridCenterLatVar[:] = rad_center_lat
+    gridCenterLatVar[:] = final_center_lat
 
     # create variable grid_center_lon
     logger.debug("Creating variable grid_center_lon")
     gridCenterLonVar = oFile.createVariable("grid_center_lon", numpy.dtype('double').char, ("grid_size"))
-    gridCenterLonVar.setncattr("units", "rad")
+    gridCenterLonVar.setncattr("units", units)
     gridCenterLonVar.setncattr("long_name", "lonitude")
     gridCenterLonVar.setncattr("bounds", "grid_corner_lon")
-    gridCenterLonVar[:] = rad_center_lon
+    gridCenterLonVar[:] = final_center_lon
 
     # create variable grid_imask
     logger.debug("Creating variable grid_imask")
@@ -321,14 +340,14 @@ if __name__ == "__main__":
     # create variable grid_corner_lat
     logger.debug("Creating variable grid_corner_lat")
     gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners"))
-    gridCornerLatVar.setncattr("units", "rad")
-    gridCornerLatVar[:] = rad_corner_lat
+    gridCornerLatVar.setncattr("units", units)
+    gridCornerLatVar[:] = final_corner_lat
 
     # create variable grid_corner_lon
     logger.debug("Creating variable grid_corner_lon")
     gridCornerLonVar = oFile.createVariable("grid_corner_lon", numpy.dtype('double').char, ("grid_size", "grid_corners"))
-    gridCornerLonVar.setncattr("units", "rad")
-    gridCornerLonVar[:] = rad_corner_lon
+    gridCornerLonVar.setncattr("units", units)
+    gridCornerLonVar[:] = final_corner_lon
     
     # close output file
     oFile.close()
