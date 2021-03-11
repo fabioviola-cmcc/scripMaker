@@ -93,105 +93,126 @@ if __name__ == "__main__":
         
     ########################################################
     #
-    # processing...
+    # read data from the grids and mask (if any)
+    #
+    ########################################################
+    
+    # read coordinates on T grid
+    t_lon = numpy.squeeze(iFile1.variables["glamt"]).transpose()
+    t_lat = numpy.squeeze(iFile1.variables["gphit"]).transpose()
+
+    # read coordinates on F grid
+    f_lon = numpy.squeeze(iFile1.variables["glamf"]).transpose()
+    f_lat = numpy.squeeze(iFile1.variables["gphif"]).transpose()
+
+    # read metrics fro T grid
+    e1t = numpy.squeeze(iFile1.variables["e1t"]).transpose()
+    e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose()
+    
+    # determine other metrics for T grid
+    t_lon_size = t_lon.shape[0]
+    t_lat_size = t_lat.shape[1]
+    t_grid_size = t_lat_size * t_lon_size
+    t_grid_dims = [t_lon_size, t_lat_size]
+    tarea = numpy.matrix.flatten(e1t * e2t)
+
+    # determine general metrics
+    grid_corners = 4
+    grid_rank = 2
+
+    # read the mask
+    if maskFile:
+        tmask = numpy.squeeze(iFile2.variables["tmask"])
+        if len(tmask.shape) == 3:
+            tmask = numpy.squeeze(tmask[0,:,:])
+
+            
+    ########################################################
+    #
+    # processing CENTER Lon and Lat
     #
     ########################################################
 
-    ### Processing starts at line ~80
+    # convert to radians
+    rad_center_lon = numpy.radians(t_lon)
+    rad_center_lat = numpy.radians(t_lat)
+
+    # flatten
+    rad_center_lon = numpy.matrix.flatten(rad_center_lon)
+    rad_center_lat = numpy.matrix.flatten(rad_center_lat)
+
     
-    # read T coordinates
-    lon = numpy.squeeze(iFile1.variables["glamt"]).transpose() ### 305, 319
-    lat = numpy.squeeze(iFile1.variables["gphit"]).transpose() ### 306, 320
-    nlon = lon.shape[0] ### 327
-    nlat = lat.shape[1] ### 328
-    grid_size = nlat * nlon ### 456
-    grid_dims = [nlon, nlat] ### 457
-    grid_corners = 4 ### 458
-    grid_rank = 2 ### 459
+    ########################################################
+    #
+    # processing CORNER Lon and Lat
+    #
+    ########################################################
 
-    # read F coordinates
-    clon = numpy.squeeze(iFile1.variables["glamf"]).transpose() ### 310, 321
-    clat = numpy.squeeze(iFile1.variables["gphif"]).transpose() ### 311, 322
-
-    # load T grid metrics
-    e1t = numpy.squeeze(iFile1.variables["e1t"]).transpose() ### 315, 323
-    e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose() ### 316, 324
-
-    # load the land-sea mask (0=land, 1=sea)
-    if maskFile:
-        tmask = numpy.squeeze(iFile2.variables["tmask"]) ### 334
-        if len(tmask.shape) == 3: ### 335
-            tmask = numpy.squeeze(tmask[0,:,:]) ### 336
-            
-    mask = numpy.unos(lon.shape) ### 339
-    if maskFile:
-        mask = numpy.where(tmask>0.0, 1.0, 0.0) ### 340
-    mask = mask.transpose() ### 446
+    # get the lat and lon cell size
+    lon_cell_size = f_lon[1,1] - f_lon[0,1]
+    lat_cell_size = f_lat[0,1] - f_lat[0,0]    
     
-    # compute T grid corners coordinates (F points)
-    tarea = e1t * e2t  ### 468
-    erad = 6371229; # NEMO Earth radius (m) ### 479
-    tarea = tarea/(erad^2) # Normalise (probably useless) ### 487    
-    
-    # Translate longitude from range [-180:180] to [0:360]
-    # NOTE: this is probably useless for our use case. Keep for future?
-    lon = numpy.where(lon<0, lon+360, lon) ### 451
-    clon = numpy.where(clon<0, clon+360, clon) ### 452
-
-    # convert to radiants
-    rlat = numpy.radians(lat) ### 490
-    rlon = numpy.radians(lon) ### 491
-    rclat = numpy.radians(clat) ### 492
-    rclon = numpy.radians(clon) ### 493
-    
-    # determine fxt
-    fxt = numpy.radians(numpy.floor(numpy.min(lat[0,:])))
-
     # initialise nemo_clo and nemo_cla
-    nemo_clo = numpy.zeros((nlon, nlat, grid_corners)) ### 496
-    nemo_cla = numpy.zeros((nlon, nlat, grid_corners)) ### 497
+    corner_lon = numpy.zeros((t_lon_size, t_lat_size, grid_corners))
+    corner_lat = numpy.zeros((t_lon_size, t_lat_size, grid_corners))
 
-    # Fill the corners arrays: anti-clockwise starting from upper-right
+    # Corner 0 lon and lat
+    logger.debug("Setting corner 0...")
+    corner_lon[:,:,0] = f_lon
+    corner_lat[:,:,0] = f_lat
 
     # Corner 1 lon and lat
-    nemo_clo[:,:,0] = rclon; ### 500
-    nemo_cla[:,:,0] = rclat; ### 513
-    
+    # - moving to corner 1, we have problems with longitude when we get to the left border (i.e. first column)
+    # - latitude should not represent a problem on the right column
+    logger.debug("Setting corner 1...")
+    corner_lon[0,:,1] = f_lon[0,:] - lon_cell_size
+    corner_lon[1:,:,1] = f_lon[0:-1,:]
+    corner_lat[:,:,1] = f_lat
+
     # Corner 2 lon and lat
-    nemo_clo[0,:,1] = rclon[-1,:]    ### 503
-    nemo_clo[1:,:,1] = rclon[0:-1,:] ### 502
-    nemo_cla[0,:,1] = rclat[-3,:]    ### 516
-    nemo_cla[1:,:,1] = rclat[0:-1,:] ### 515
+    # - this is the most problematic corner, since in the bottom-left end of the grid
+    #   we end having a void point both for latitude and longitude
+    logger.debug("Setting corner 2...")
+    corner_lon[0:,:,2] = f_lon[0:] - lon_cell_size
+    corner_lon[1:,:,2] = f_lon[0:-1]
+    corner_lat[:,0,2] = f_lat[:,0] - lat_cell_size
+    corner_lat[:,1:,2] = f_lat[:,0:-1]
 
     # Corner 3 lon and lat
-    nemo_clo[1:,1:,2] = rclon[0:-1,0:-1]  ### 505
-    nemo_clo[0,1:,2] = rclon[-1, 0:-1]    ### 506
-    nemo_clo[1:,0,2] = rclon[0:-1,0]      ### 507
-    nemo_clo[0,0,2] = rclon[-1,0]         ### 508
-    nemo_cla[1:,1:,2] = rclat[0:-1,0:-1]  ### 518
-    nemo_cla[0,1:,2] = rclat[-3,0:-1]     ### 519
-    nemo_cla[:,0,2] = fxt                 ### 520
-
-    # Corner 4 lon and lat
-    nemo_clo[:,1:,3] = rclon[:,0:-1]    ### 510
-    nemo_clo[:,0,3] = rclon[:,0]        ### 511
-    nemo_cla[:,1:,3] = rclat[:,0:-1]    ### 522
-    nemo_cla[:,0,3] = fxt               ### 523
-        
-    # Reshape to SCRIP convention
-    rlon = numpy.matrix.flatten(rlon)   ### 693
-    rlat = numpy.matrix.flatten(rlat)   ### 694
-    mask = numpy.matrix.flatten(mask)   ### 695
-    tarea = numpy.matrix.flatten(tarea) ### 696
+    # - moving to corner 3, longitude should not represent a problem
+    # - latitude is instead a problem when we get to the bottom of the grid
+    logger.debug("Setting corner 3...")
+    corner_lon[:,:,3] = f_lon
+    corner_lat[:,0,3] = f_lat[:,0] - lat_cell_size
+    corner_lat[:,1:,3] = f_lat[:,0:-1]
+    
+    # convert to radiants
+    rad_corner_lat = numpy.radians(corner_lat)
+    rad_corner_lon = numpy.radians(corner_lon)
 
     # reshape nemo_clo
-    nemo_clo_final = nemo_clo.reshape((grid_size, grid_corners))
+    rad_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
     
     # reshape nemo_cla
-    nemo_cla_final = nemo_cla.reshape((grid_size, grid_corners))
-    
-    ### Processing ends at line 698
-    ### After that, it's just production of the output NetCDF files
+    rad_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
+
+
+    ########################################################
+    #
+    # processing the mask
+    #
+    ########################################################
+
+    # initialise a mask with all 1
+    mask = numpy.ones(t_lon.shape)
+
+    # if there's a mask (e.g. with NEMO, change the values where needed)
+    if maskFile:
+        mask = numpy.where(tmask>0.0, 1.0, 0.0)
+
+    # transpose and flatten the matrix
+    mask = mask.transpose()
+    mask = numpy.matrix.flatten(mask)
     
     
     ########################################################
@@ -202,78 +223,75 @@ if __name__ == "__main__":
         
     logger.debug("Opening output file...")
     try:
-        oFile = Dataset(outputFile, "w") ### 717
+        oFile = Dataset(outputFile, "w")
     except FileNotFoundError:
         logger.error("Impossible to create file %s" % outputFile)
         sys.exit(4)
 
     # write attributes
-    oFile.title = "SCRIP grid created with scripMaker.py" ### 727
-    oFile.Conventions = "CF-1.0" ### 726
-    oFile.institution = "Euro-Mediterranean Centre for Climate Change - CMCC" ### 728
+    oFile.title = "SCRIP grid created with scripMaker.py"
+    oFile.Conventions = "CF-1.0"
+    oFile.institution = "Euro-Mediterranean Centre for Climate Change - CMCC"
     oFile.source = "%s %s" % (gridFile, maskFile)  
-    oFile.contact = "Fabio Viola <fabio.viola@cmcc.it>" ### 736
-    oFile.creation_date = datetime.datetime.today().strftime("%Y/%m/%d %H:%M") ### 737
+    oFile.contact = "Fabio Viola <fabio.viola@cmcc.it>"
+    oFile.creation_date = datetime.datetime.today().strftime("%Y/%m/%d %H:%M")
 
     # create dimensions 
     logger.debug("Creating dimension grid_size")
-    oFile.createDimension("grid_size", grid_size) ### 741
+    oFile.createDimension("grid_size", t_grid_size)
     logger.debug("Creating dimension grid_rank")
-    oFile.createDimension("grid_rank", grid_rank) ### 742
+    oFile.createDimension("grid_rank", grid_rank)
     logger.debug("Creating dimension grid_corners")
-    oFile.createDimension("grid_corners", grid_corners) ### 743
+    oFile.createDimension("grid_corners", grid_corners)
     
     # create variable grid_dims
     logger.debug("Creating variable grid_dims")
-    gridDimsVar = oFile.createVariable("grid_dims", numpy.dtype('int32').char, ("grid_rank")) ### 746, 747, 748, 749
-    gridDimsVar[:] = grid_dims ### 818
+    gridDimsVar = oFile.createVariable("grid_dims", numpy.dtype('int32').char, ("grid_rank"))
+    gridDimsVar[:] = t_grid_dims
     
     # create variable grid_center_lat
     logger.debug("Creating variable grid_center_lat")
-    gridCenterLatVar = oFile.createVariable("grid_center_lat", numpy.dtype('double').char, ("grid_size")) ### 752, 753, 754, 761
-    gridCenterLatVar.setncattr("units", "rad") ### 755, 756
-    gridCenterLatVar.setncattr("long_name", "latitude") ### 757, 758
-    gridCenterLatVar.setncattr("bounds", "grid_corner_lat") ### 759, 760
-    gridCenterLatVar[:] = rlat ### 819
+    gridCenterLatVar = oFile.createVariable("grid_center_lat", numpy.dtype('double').char, ("grid_size"))
+    gridCenterLatVar.setncattr("units", "rad")
+    gridCenterLatVar.setncattr("long_name", "latitude")
+    gridCenterLatVar.setncattr("bounds", "grid_corner_lat")
+    gridCenterLatVar[:] = rad_center_lat
 
     # create variable grid_center_lon
     logger.debug("Creating variable grid_center_lon")
-    gridCenterLonVar = oFile.createVariable("grid_center_lon", numpy.dtype('double').char, ("grid_size")) ### 764, 765, 767, 773
-    gridCenterLonVar.setncattr("units", "rad") ### 767, 768
-    gridCenterLonVar.setncattr("long_name", "lonitude") ### 769, 770
-    gridCenterLonVar.setncattr("bounds", "grid_corner_lon") ### 771, 772
-    gridCenterLonVar[:] = rlon ### 820
+    gridCenterLonVar = oFile.createVariable("grid_center_lon", numpy.dtype('double').char, ("grid_size"))
+    gridCenterLonVar.setncattr("units", "rad")
+    gridCenterLonVar.setncattr("long_name", "lonitude")
+    gridCenterLonVar.setncattr("bounds", "grid_corner_lon")
+    gridCenterLonVar[:] = rad_center_lon
 
     # create variable grid_imask
     logger.debug("Creating variable grid_imask")
-    imaskVar = oFile.createVariable("grid_imask", numpy.dtype('int32').char, ("grid_size")) ### 776, 777, 778, 785
-    imaskVar.setncattr("units", "1") ### 779, 780
-    imaskVar.setncattr("standard_name", "sea_binary_imask") ### 781, 782
-    imaskVar.setncattr("long_name", "land-sea imask (1=sea, 0=land)") ### 783, 784
-    try:
-        imaskVar[:] = mask ### 821
-    except:
-        pdb.set_trace()
+    imaskVar = oFile.createVariable("grid_imask", numpy.dtype('int32').char, ("grid_size"))
+    imaskVar.setncattr("units", "1")
+    imaskVar.setncattr("standard_name", "sea_binary_imask")
+    imaskVar.setncattr("long_name", "land-sea imask (1=sea, 0=land)")
+    imaskVar[:] = mask
 
     # create variable grid_area
     logger.debug("Creating variable grid_area")
-    areaVar = oFile.createVariable("grid_area", numpy.dtype('double').char, ("grid_size")) # 789, 790, 791, 798
-    areaVar.setncattr("units", "sr") ### 792, 793
-    areaVar.setncattr("standard_name", "cell_area") ### 794, 795
-    areaVar.setncattr("long_name", "area of grid cells (in steradians)") ### 796, 797
-    areaVar[:] = tarea ### 822
+    areaVar = oFile.createVariable("grid_area", numpy.dtype('double').char, ("grid_size"))
+    areaVar.setncattr("units", "sr")
+    areaVar.setncattr("standard_name", "cell_area")
+    areaVar.setncattr("long_name", "area of grid cells (in steradians)")
+    areaVar[:] = tarea
 
     # create variable grid_corner_lat
     logger.debug("Creating variable grid_corner_lat")
-    gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 801, 802, 803, 806
-    gridCornerLatVar.setncattr("units", "rad") ### 804, 805
-    gridCornerLatVar[:] = nemo_cla_final ### 823
+    gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners"))
+    gridCornerLatVar.setncattr("units", "rad")
+    gridCornerLatVar[:] = rad_corner_lat
 
     # create variable grid_corner_lon
     logger.debug("Creating variable grid_corner_lon")
-    gridCornerLonVar = oFile.createVariable("grid_corner_lon", numpy.dtype('double').char, ("grid_size", "grid_corners")) ### 809, 810, 811, 814
-    gridCornerLonVar.setncattr("units", "rad") ### 812, 813
-    gridCornerLonVar[:] = nemo_clo_final ### 824
+    gridCornerLonVar = oFile.createVariable("grid_corner_lon", numpy.dtype('double').char, ("grid_size", "grid_corners"))
+    gridCornerLonVar.setncattr("units", "rad")
+    gridCornerLonVar[:] = rad_corner_lon
     
     # close output file
     oFile.close()
