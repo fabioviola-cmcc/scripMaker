@@ -144,7 +144,7 @@ if __name__ == "__main__":
     if model == "ocn":
         e1t = numpy.squeeze(iFile1.variables["e1t"]).transpose()
         e2t = numpy.squeeze(iFile1.variables["e2t"]).transpose()
-        tarea = numpy.matrix.flatten(e1t * e2t)
+        tarea = numpy.matrix.flatten(e1t * e2t, 'F')
     
     # determine other metrics for T grid
     t_lon_size = t_lon.shape[0]
@@ -176,14 +176,16 @@ if __name__ == "__main__":
         rad_center_lat = numpy.radians(t_lat)
 
         # flatten
-        final_center_lon = numpy.matrix.flatten(rad_center_lon) 
-        final_center_lat = numpy.matrix.flatten(rad_center_lat)
+        final_center_lon = numpy.matrix.flatten(rad_center_lon, 'F') 
+        final_center_lat = numpy.matrix.flatten(rad_center_lat, 'F')
+        # final_center_lon = numpy.matrix.flatten(rad_center_lon) 
+        # final_center_lat = numpy.matrix.flatten(rad_center_lat)
 
     else:
         
         # flatten
-        final_center_lon = numpy.matrix.flatten(t_lon) 
-        final_center_lat = numpy.matrix.flatten(t_lat)
+        final_center_lon = numpy.matrix.flatten(t_lon, 'F') 
+        final_center_lat = numpy.matrix.flatten(t_lat, 'F')
 
         
     ########################################################
@@ -193,8 +195,8 @@ if __name__ == "__main__":
     ########################################################
 
     # get the lat and lon cell size
-    lon_cell_size = f_lon[1,1] - f_lon[0,1]
-    lat_cell_size = f_lat[0,1] - f_lat[0,0]    
+    lon_cell_size = t_lon[1,1] - t_lon[0,1]
+    lat_cell_size = t_lat[0,1] - t_lat[0,0]    
     
     # initialise nemo_clo and nemo_cla
     corner_lon = numpy.zeros((t_lon_size, t_lat_size, grid_corners))
@@ -234,20 +236,48 @@ if __name__ == "__main__":
     if model == "ocn":
         rad_corner_lat = numpy.radians(corner_lat)
         rad_corner_lon = numpy.radians(corner_lon)
-
+    
         # reshape nemo_clo
-        final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
+        final_corner_lon = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
+        final_corner_lon[:,0] = rad_corner_lon[:,:,0].flatten('F')
+        final_corner_lon[:,1] = rad_corner_lon[:,:,1].flatten('F')
+        final_corner_lon[:,2] = rad_corner_lon[:,:,2].flatten('F')
+        final_corner_lon[:,3] = rad_corner_lon[:,:,3].flatten('F')
+        # final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
         
         # reshape nemo_cla
-        final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
+        final_corner_lat = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
+        final_corner_lat[:,0] = rad_corner_lat[:,:,0].flatten('F')
+        final_corner_lat[:,1] = rad_corner_lat[:,:,1].flatten('F')
+        final_corner_lat[:,2] = rad_corner_lat[:,:,2].flatten('F')
+        final_corner_lat[:,3] = rad_corner_lat[:,:,3].flatten('F')
+        # final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
 
+#        pdb.set_trace()
+        
     else:
 
         # reshape nemo_clo
-        final_corner_lon = corner_lon.reshape((t_grid_size, grid_corners))
+        final_corner_lon = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
+        final_corner_lon[:,0] = corner_lon[:,:,0].flatten('F')
+        final_corner_lon[:,1] = corner_lon[:,:,1].flatten('F')
+        final_corner_lon[:,2] = corner_lon[:,:,2].flatten('F')
+        final_corner_lon[:,3] = corner_lon[:,:,3].flatten('F')
+        # final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
         
         # reshape nemo_cla
-        final_corner_lat = corner_lat.reshape((t_grid_size, grid_corners))
+        final_corner_lat = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
+        final_corner_lat[:,0] = corner_lat[:,:,0].flatten('F')
+        final_corner_lat[:,1] = corner_lat[:,:,1].flatten('F')
+        final_corner_lat[:,2] = corner_lat[:,:,2].flatten('F')
+        final_corner_lat[:,3] = corner_lat[:,:,3].flatten('F')
+        # final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
+        
+        # # reshape nemo_clo
+        # final_corner_lon = corner_lon.reshape((t_grid_size, grid_corners))
+        
+        # # reshape nemo_cla
+        # final_corner_lat = corner_lat.reshape((t_grid_size, grid_corners))
 
         
     ########################################################
@@ -265,7 +295,7 @@ if __name__ == "__main__":
 
     # transpose and flatten the matrix
     mask = mask.transpose()
-    mask = numpy.matrix.flatten(mask)
+    mask = numpy.matrix.flatten(mask, 'F')
     
     
     ########################################################
@@ -335,6 +365,8 @@ if __name__ == "__main__":
         areaVar.setncattr("long_name", "area of grid cells (in steradians)")
         areaVar[:] = tarea
 
+#    pdb.set_trace()
+        
     # create variable grid_corner_lat
     logger.debug("Creating variable grid_corner_lat")
     gridCornerLatVar = oFile.createVariable("grid_corner_lat", numpy.dtype('double').char, ("grid_size", "grid_corners"))
