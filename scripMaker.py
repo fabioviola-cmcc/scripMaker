@@ -157,8 +157,8 @@ if __name__ == "__main__":
     grid_rank = 2
 
     # read the mask
-    if maskFile:
-        tmask = numpy.squeeze(iFile2.variables["tmask"])
+    if model == "ocn":
+        tmask = numpy.squeeze(iFile1.variables["tmask"])
         if len(tmask.shape) == 3:
             tmask = numpy.squeeze(tmask[0,:,:])
 
@@ -243,7 +243,6 @@ if __name__ == "__main__":
         final_corner_lon[:,1] = rad_corner_lon[:,:,1].flatten('F')
         final_corner_lon[:,2] = rad_corner_lon[:,:,2].flatten('F')
         final_corner_lon[:,3] = rad_corner_lon[:,:,3].flatten('F')
-        # final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
         
         # reshape nemo_cla
         final_corner_lat = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
@@ -251,9 +250,6 @@ if __name__ == "__main__":
         final_corner_lat[:,1] = rad_corner_lat[:,:,1].flatten('F')
         final_corner_lat[:,2] = rad_corner_lat[:,:,2].flatten('F')
         final_corner_lat[:,3] = rad_corner_lat[:,:,3].flatten('F')
-        # final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
-
-#        pdb.set_trace()
         
     else:
 
@@ -263,7 +259,6 @@ if __name__ == "__main__":
         final_corner_lon[:,1] = corner_lon[:,:,1].flatten('F')
         final_corner_lon[:,2] = corner_lon[:,:,2].flatten('F')
         final_corner_lon[:,3] = corner_lon[:,:,3].flatten('F')
-        # final_corner_lon = rad_corner_lon.reshape((t_grid_size, grid_corners))
         
         # reshape nemo_cla
         final_corner_lat = numpy.zeros((t_lon_size * t_lat_size, grid_corners))
@@ -271,13 +266,7 @@ if __name__ == "__main__":
         final_corner_lat[:,1] = corner_lat[:,:,1].flatten('F')
         final_corner_lat[:,2] = corner_lat[:,:,2].flatten('F')
         final_corner_lat[:,3] = corner_lat[:,:,3].flatten('F')
-        # final_corner_lat = rad_corner_lat.reshape((t_grid_size, grid_corners))
-        
-        # # reshape nemo_clo
-        # final_corner_lon = corner_lon.reshape((t_grid_size, grid_corners))
-        
-        # # reshape nemo_cla
-        # final_corner_lat = corner_lat.reshape((t_grid_size, grid_corners))
+
 
         
     ########################################################
@@ -290,7 +279,7 @@ if __name__ == "__main__":
     mask = numpy.ones(t_lon.shape)
 
     # if there's a mask (e.g. with NEMO, change the values where needed)
-    if maskFile:
+    if model == "ocn":
         mask = numpy.where(tmask>0.0, 1.0, 0.0)
 
     # transpose and flatten the matrix
